@@ -1,0 +1,175 @@
+run_name: 'example' 
+model_type: 'simple_dino_tf'
+
+data:
+  name: fmri                
+  target_signal_length: 100    # Target length after cropping/padding (T')
+  channels: "all"             # Number of ROIs/channels (C)
+  number_of_crops: 2        # Number of views/crops to generate per sample
+  min_crop_distance: 0
+  max_crop_distance: 80
+  network_map_path: ./network_mapping.npz
+  crop_starts: 'conditional_align'
+  
+  # Explicit atlas specification
+  schaefer_atlas: schaefer400
+  schaefer_rois: 400
+  schaefer_networks: 7
+  tian_atlas: tian3
+  tian_rois: 50
+  tian_networks: 1
+  buckner_atlas: buckner7
+  buckner_rois: 7
+  buckner_networks: 1
+  
+  # Spatial resolution modes
+  max_spatial: false  # If true, each ROI is its own 'network'
+  min_spatial: false  # If true, all ROIs constitute a single 'network'
+  
+  augment_level: [1, 1, 1, 1]
+
+  datasets:
+    - name: ukb 
+      data_path: /path/to/pretraining/data.h5 # see example.ipynb to see how to structure this
+      raw_signal_length: 180
+      train_subject_ids_path: /path/to/subject_ids_for_pretraining_sample.npy
+
+  patch_size: 20
+
+model:
+  backbone_type: 'cnn_tf'
+  
+  cnn_dim: 768
+  cnn_final_norm: 'layer'
+  embedding_dim: 768
+  depth: 8
+  heads: 0 # not used, set automatically to D/64
+  mlp_dim: 0 # not used, mlp_dim is set dynamically to D4
+  global_pooling: 'cls'
+  projection_hidden_dim: 1024
+  projection_output_dim: 512 # Not used for simdino, output dim is equal to 'bottleneck' dim
+  projection_bottleneck_dim: 128
+  projection_nlayers: 2
+  drop_path_rate: 0.0
+  layer_scale_init_value: 0.1
+  emb_dropout: 0.0
+    
+  tokenizer:
+    pooling_type: 'mean'  
+    config:
+      - type: 'dense'
+        kernel_size: 3
+        depthwise: false
+        out_channels: 384
+      - type: 'sgconv'
+        kernel_size: 4
+        num_scales: 3
+        decay_min: 2.0
+        decay_max: 2.0
+        out_channels: 384
+    final_norm: 'layer'
+
+# SSL Task Arguments 
+ssl:
+  cls_loss_weight: 1.0
+  mask_loss_weight: 0.5
+  network_loss_weight: 0.5
+  netloss_weight_decay_epochs: 5
+  netloss_decay_schedule: 'cosine'
+  netloss_weight_warmup: 0  
+
+masking:
+  masking_frequency: 0.5
+  masking_ratio: [0.65, 0.85]
+  masking_type: "slice"
+  canonical_network_masks: false  # If True, generate masks at canonical network level (schaefer→7, tian→1, buckner→1)
+
+dino:
+  base_teacher_momentum: 0.99
+  use_separate_mask_predictor: false
+  coeff: 1
+
+optimizer:
+  type: AdamW
+  base_lr_scale: 0.0007
+  weight_decay: 0.05
+  weight_decay_end: 0.3
+  lr_decay_rate: 1.0
+
+scheduler:
+  warmup_epochs: 3
+
+training:
+  epochs: 100
+  batch_size: 512
+  gradient_accumulation_steps: 1  # Number of steps to accumulate gradients before optimizer step
+  num_workers: 8
+  seed: 21
+  log_interval: 1000
+  checkpoint_interval: 100
+  output_dir: './output/'
+  resume_checkpoint: null
+  save_model: false
+  use_cuda: true
+
+# Used by both linear_probe and finetune sections
+probe_datasets: &shared_probe_datasets
+    - name: ukb_sex 
+      data_path: /path/to/your/data.h5 # Path to the HDF5 file, see example.ipynb to see how to structure this
+      raw_signal_length: 180 
+      label_names: ['labels/sex'] # List of labels in HDF5 for this dataset
+      n_class: [2] # Number of classes for each label
+      probe_train_subject_ids_path: /path/to/subject_ids.npy
+      split_ratio: [0.30769, 0.07692, 0.61538]
+    # - name: second_dataset ... Probing/Finetuning will loop through each of these
+
+linear_probe:
+  enabled: true
+  probe_at_epochs: [100]
+  test_time_crops: 8
+  feature_source: 'teacher'
+  feature_types: ['cls_avg']
+  learning_rates: [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001]
+  probe_batch_size: 256
+  probe_num_workers: 10
+  n_repetitions: 10
+  probe_datasets: *shared_probe_datasets  # Reference to shared datasets
+
+finetune:
+  enabled: true
+  probe_at_epochs: []  # When to run finetuning evaluation during pretraining
+  
+  head_type: 'linear'  # Options: 'linear', 'mlp'
+  hidden_dims: [512, 512, 256]  # Hidden dimensions for MLP head (ignored for linear)
+  dropout: 0.0  # Dropout rate in head
+  
+  feature_type: 'cls_avg'  # Options: 'cls', 'cls_avg', 'avg'
+  use_teacher: true  # Use student encoder for finetuning
+  
+  use_grid_search: false  # If false, use single LR with scheduler
+  
+  # Grid Search Configuration (when use_grid_search=true) 
+  learning_rates: [0.001, 0.0001, 0.00001]  # Grid search over these LRs
+  max_epochs_grid: 30  # Max epochs per grid search configuration
+  early_stopping_patience: 50  # Stop if no improvement for this many epochs
+  
+  # Fixed Schedule Configuration (when use_grid_search=false) 
+  fixed_lr: 0.0001  # Single learning rate to use
+  fixed_epochs: 50  # Total epochs for fixed schedule
+  scheduler_type: 'cosine'  # Options: 'cosine', 'linear', 'constant'
+  warmup_epochs: 0  # Linear warmup period (for cosine/linear schedulers)
+  min_lr: 0.0  # Minimum LR for cosine scheduler
+
+  encoder_lr_multiplier: 1.0  # Encoder LR = head LR * this multiplier
+  weight_decay: 0.05
+  optimizer: 'adamw'  # Options: 'adamw', 'sgd'
+  momentum: 0.9  # For SGD 
+  lr_decay_rate: 0.9
+  freeze_encoder_epochs: 0  # Freeze encoder for this many initial epochs
+  gradient_clip: 1.0  # Gradient clipping value (0 to disable)
+  use_amp: true  # Use automatic mixed precision (same as pretraining)
+  batch_size: 16  # Can be different from pretraining batch size
+  num_workers: 4
+  test_time_crops: 8  # Number of crops for test-time augmentation
+  n_repetitions: 10  # Number of times to repeat with different splits
+  probe_datasets: *shared_probe_datasets  # Reference to shared datasets
