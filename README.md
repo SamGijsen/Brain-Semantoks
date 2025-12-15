@@ -2,6 +2,8 @@
 
 **Authors**: Sam Gijsen, Marc-Andre Schulz, Kerstin Ritter
 
+ArXiv Paper: https://arxiv.org/abs/2512.11582
+
 Brain-Semantoks is an fMRI Transformer foundation model which can be used to extract high-level representations of fMRI recordings or finetuned for downstream tasks.
 
 - Pretrained for abstract representations which are stable across time.
