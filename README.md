@@ -33,7 +33,7 @@ https://huggingface.co/SamGijsen/Brain-Semantoks
 The model operates on parcellated 3T fMRI timeseries. 
 
 - **Parcellation**: We use Schaefer-400 (Cortex), Tian-3 (Subcortical), and Buckner-7 (Cerebellum). If you're missing the subcortical and/or cerebellar parcellation, you can still run the model by masking their tokens (post-tokenizer).
-- **TR**: 2.0 seconds (0.5 Hz sampling rate)
+- **TR**: 2.0 seconds (0.5 Hz sampling rate). Resampling the parcellated timeseries is very quick.
 - **Bandpass filtering**: 0.01-0.1 Hz (similar ranges like 0.009-0.08 Hz also work and preliminary tests show the model still performs well for unfiltered data)
 - **Normalization**: Z-scoring per ROI per subject
 
