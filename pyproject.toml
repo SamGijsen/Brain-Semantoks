@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brain-semantoks"
+version = "0.1.0"
+description = "Brain-Semantoks: Learning Semantic Tokens of Brain Dynamics"
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "torch",
+    "numpy",
+    "scipy",
+    "h5py",
+    "pandas",
+    "PyYAML",
+    "einops",
+    "scikit-learn",
+]
+
+[tool.setuptools]
+packages = ["model"]
