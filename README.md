@@ -1,4 +1,4 @@
-# Brain-Semantoks: Learning Semantic Tokens of Brain Dynamics with a Self-Distilled Foundation Model
+# [ICLR26] Brain-Semantoks: Learning Semantic Tokens of Brain Dynamics with a Self-Distilled Foundation Model
 
 **Authors**: Sam Gijsen, Marc-Andre Schulz, Kerstin Ritter
 
