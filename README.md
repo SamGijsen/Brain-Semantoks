@@ -2,7 +2,7 @@
 
 **Authors**: Sam Gijsen, Marc-Andre Schulz, Kerstin Ritter
 
-ArXiv Paper: https://arxiv.org/abs/2512.11582
+Paper: https://arxiv.org/abs/2512.11582
 
 Brain-Semantoks is an fMRI Transformer foundation model which can be used to extract high-level representations of fMRI recordings or finetuned for downstream tasks.
 
@@ -115,4 +115,16 @@ linear_probe:
 # alternatives:
 # probe_at_epochs: [] # no probe evaluation
 # probe_at_epochs: [10, 100] # will probe after 10 and 100 epochs
+```
+
+## Citation
+```
+ @inproceedings{gijsen2026brain,
+    title={Brain-Semantoks: Learning Semantic Tokens of Brain Dynamics with a Self-Distilled Foundation Model},
+    author={Gijsen, Sam and Schulz, Marc-Andre and Ritter, Kerstin},
+    booktitle={International Conference on Learning Representations},
+    year={2026},
+    note={arXiv:2512.11582}
+  }
+```
 ```
